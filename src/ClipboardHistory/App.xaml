@@ -5,6 +5,7 @@
   <Application.Resources>
     <converters:ViewModeToTextWrappingConverter x:Key="ViewModeToWrapping" />
     <converters:ViewModeToMaxHeightConverter x:Key="ViewModeToMaxHeight" />
+    <converters:ViewModeToBooleanConverter x:Key="ViewModeToBool" />
 
     <!-- Palette -->
     <Color x:Key="Col.Page">#EDEEF2</Color>
@@ -160,12 +161,36 @@
       </Setter>
     </Style>
 
+    <Style x:Key="ViewModeButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Tag" Value="List" /> <!-- Default tag -->
+    </Style>
+
     <!-- List: no chrome, no selection box around items -->
     <Style x:Key="HistoryListBox" TargetType="ListBox">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Padding" Value="0" />
       <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+      <Setter Property="ItemsPanel">
+        <Setter.Value>
+          <ItemsPanelTemplate>
+            <VirtualizingStackPanel />
+          </ItemsPanelTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding ViewMode}" Value="Card">
+          <Setter Property="ItemsPanel">
+            <Setter.Value>
+              <ItemsPanelTemplate>
+                <WrapPanel IsItemsHost="True" />
+              </ItemsPanelTemplate>
+            </Setter.Value>
+          </Setter>
+        </DataTrigger>
+      </Style.Triggers>
     </Style>
 
     <Style x:Key="HistoryListItem" TargetType="ListBoxItem">
@@ -197,6 +222,13 @@
           </ControlTemplate>
         </Setter.Value>
       </Setter>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding DataContext.ViewMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="Card">
+          <Setter Property="Width" Value="220" />
+          <Setter Property="Height" Value="160" />
+          <Setter Property="Margin" Value="0,0,12,12" />
+        </DataTrigger>
+      </Style.Triggers>
     </Style>
 
   </Application.Resources>

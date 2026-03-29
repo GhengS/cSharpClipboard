@@ -71,14 +71,33 @@
                        Foreground="{StaticResource Brush.TextMuted}" />
             <Button Content="列表"
                     Command="{Binding ToggleListViewCommand}"
-                    Padding="12,8"
-                    Margin="0,0,6,0"
-                    FontSize="12" />
+                    Margin="0,0,6,0">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource ViewModeButtonStyle}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding ViewMode, Converter={StaticResource ViewModeToBool}, ConverterParameter=List}" Value="True">
+                      <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
+                      <Setter Property="Foreground" Value="White" />
+                      <Setter Property="BorderBrush" Value="{StaticResource Brush.AccentDark}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+            </Button>
             <Button Content="卡片"
-                    Command="{Binding ToggleCardViewCommand}"
-                    Padding="12,8"
-                    Margin="0,0,0,0"
-                    FontSize="12" />
+                    Command="{Binding ToggleCardViewCommand}">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource ViewModeButtonStyle}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding ViewMode, Converter={StaticResource ViewModeToBool}, ConverterParameter=Card}" Value="True">
+                      <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
+                      <Setter Property="Foreground" Value="White" />
+                      <Setter Property="BorderBrush" Value="{StaticResource Brush.AccentDark}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+            </Button>
           </StackPanel>
 
           <StackPanel Orientation="Horizontal"
@@ -157,11 +176,6 @@
                SelectionChanged="HistoryList_OnSelectionChanged"
                MouseDoubleClick="HistoryList_OnMouseDoubleClick"
                ItemContainerStyle="{StaticResource HistoryListItem}">
-        <ListBox.ItemsPanel>
-          <ItemsPanelTemplate>
-            <VirtualizingStackPanel />
-          </ItemsPanelTemplate>
-        </ListBox.ItemsPanel>
         <ListBox.InputBindings>
           <KeyBinding Key="Enter" Command="{Binding CopySelectionCommand}" />
         </ListBox.InputBindings>
