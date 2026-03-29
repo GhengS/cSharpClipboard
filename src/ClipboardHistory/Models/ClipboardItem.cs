@@ -23,6 +23,9 @@ public partial class ClipboardItem : ObservableObject
 
     public DateTime CreatedAtUtc { get; init; }
 
+    [ObservableProperty]
+    private long _sortOrder;
+
     public string Preview => Type switch
     {
         ClipboardItemType.Text => Content.Length > 200 ? string.Concat(Content.AsSpan(0, 200), "…") : Content,

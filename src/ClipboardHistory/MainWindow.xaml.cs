@@ -4,6 +4,9 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using Forms = System.Windows.Forms;
+using System.Windows.Media;
+using System.Windows.Controls;
+using System.Windows.Input;
 using ClipboardHistory.Interop;
 using ClipboardHistory.Models;
 using ClipboardHistory.Services;
@@ -20,6 +23,10 @@ public partial class MainWindow : Window
     private HwndSource? _hwndSource;
     private Forms.NotifyIcon? _trayIcon;
     private bool _reallyExit;
+
+    private System.Windows.Point _dragStartPoint;
+    private bool _isDragging;
+    private ListBoxItem? _draggedItemContainer;
 
     public MainWindow(
         HistoryRepository repository,
@@ -178,5 +185,94 @@ public partial class MainWindow : Window
     {
         if (_viewModel.CopySelectionCommand.CanExecute(null))
             _viewModel.CopySelectionCommand.Execute(null);
+    }
+
+    private void HistoryList_OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _dragStartPoint = e.GetPosition(null);
+        _draggedItemContainer = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+    }
+
+    private void HistoryList_OnMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed && !_isDragging && _draggedItemContainer != null)
+        {
+            System.Windows.Point position = e.GetPosition(null);
+            if (Math.Abs(position.X - _dragStartPoint.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                Math.Abs(position.Y - _dragStartPoint.Y) > SystemParameters.MinimumVerticalDragDistance)
+            {
+                if (sender is ListBox listBox)
+                {
+                    _isDragging = true;
+                    var item = (ClipboardItem)listBox.ItemContainerGenerator.ItemFromContainer(_draggedItemContainer);
+                    if (item != null)
+                    {
+                        DataObject dragData = new DataObject("ClipboardItem", item);
+                        DragDrop.DoDragDrop(_draggedItemContainer, dragData, DragDropEffects.Move);
+                    }
+                    _isDragging = false;
+                    _draggedItemContainer = null;
+                }
+            }
+        }
+    }
+
+    private void HistoryList_OnDragOver(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent("ClipboardItem"))
+        {
+            e.Effects = DragDropEffects.None;
+        }
+        else
+        {
+            e.Effects = DragDropEffects.Move;
+        }
+        e.Handled = true;
+    }
+
+    private async void HistoryList_OnDrop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent("ClipboardItem"))
+        {
+            if (e.Data.GetData("ClipboardItem") is ClipboardItem droppedItem && sender is ListBox listBox)
+            {
+                // We need to find the target item more robustly.
+                // e.OriginalSource might be the TextBlock or something else.
+                var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+                
+                // If we dropped on the ListBox itself (blank area), we don't know the target.
+                // But usually the user drops it ON an item.
+                if (targetItem != null)
+                {
+                    var target = (ClipboardItem)listBox.ItemContainerGenerator.ItemFromContainer(targetItem);
+                    if (target != null && droppedItem != target)
+                    {
+                        int oldIndex = _viewModel.Items.IndexOf(droppedItem);
+                        int newIndex = _viewModel.Items.IndexOf(target);
+
+                        if (oldIndex != -1 && newIndex != -1)
+                        {
+                            await _viewModel.MoveItemAsync(oldIndex, newIndex);
+                        }
+                    }
+                }
+            }
+        }
+        _isDragging = false;
+        _draggedItemContainer = null;
+    }
+
+    private static T? FindAncestor<T>(DependencyObject current) where T : DependencyObject
+    {
+        do
+        {
+            if (current is T ancestor)
+            {
+                return ancestor;
+            }
+            current = VisualTreeHelper.GetParent(current);
+        }
+        while (current != null);
+        return null;
     }
 }

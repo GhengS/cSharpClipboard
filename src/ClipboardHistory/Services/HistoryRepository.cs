@@ -34,7 +34,8 @@ public sealed class HistoryRepository : IAsyncDisposable
                       content TEXT NOT NULL,
                       created_at INTEGER NOT NULL,
                       type INTEGER DEFAULT 0,
-                      image_data BLOB
+                      image_data BLOB,
+                      sort_order INTEGER DEFAULT 0
                     );
                     CREATE INDEX IF NOT EXISTS idx_history_created ON history (created_at DESC);
                     """;
@@ -51,6 +52,18 @@ public sealed class HistoryRepository : IAsyncDisposable
                     cmd.CommandText = "ALTER TABLE history ADD COLUMN image_data BLOB;";
                     await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
                 } catch { /* column exists */ }
+                try
+                {
+                    cmd.CommandText = "ALTER TABLE history ADD COLUMN sort_order INTEGER DEFAULT 0;";
+                    await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                    // Initialize sort_order with id for existing records
+                    cmd.CommandText = "UPDATE history SET sort_order = id WHERE sort_order = 0;";
+                    await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                } catch { /* column exists */ }
+
+                // Create sort index after column is guaranteed to exist
+                cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_history_sort ON history (sort_order DESC);";
+                await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
             }
         }
         finally
@@ -66,7 +79,11 @@ public sealed class HistoryRepository : IAsyncDisposable
         {
             EnsureOpen();
             await using var cmd = _held!.CreateCommand();
-            cmd.CommandText = "INSERT INTO history(content, created_at, type, image_data) VALUES ($c, $t, $type, $img) RETURNING id;";
+            cmd.CommandText = """
+                INSERT INTO history(content, created_at, type, image_data, sort_order) 
+                VALUES ($c, $t, $type, $img, (SELECT IFNULL(MAX(sort_order), 0) + 1 FROM history)) 
+                RETURNING id;
+                """;
             cmd.Parameters.AddWithValue("$c", content);
             cmd.Parameters.AddWithValue("$t", new DateTimeOffset(createdAtUtc).ToUnixTimeMilliseconds());
             cmd.Parameters.AddWithValue("$type", (int)type);
@@ -91,6 +108,38 @@ public sealed class HistoryRepository : IAsyncDisposable
             cmd.Parameters.AddWithValue("$c", content);
             cmd.Parameters.AddWithValue("$id", id);
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task UpdateOrdersAsync(IEnumerable<(long id, long order)> orders, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            EnsureOpen();
+            await using var transaction = await _held!.BeginTransactionAsync(ct).ConfigureAwait(false);
+            try
+            {
+                foreach (var (id, order) in orders)
+                {
+                    await using var cmd = _held!.CreateCommand();
+                    cmd.CommandText = "UPDATE history SET sort_order = $o WHERE id = $id;";
+                    cmd.Parameters.AddWithValue("$o", order);
+                    cmd.Parameters.AddWithValue("$id", id);
+                    cmd.Transaction = (SqliteTransaction)transaction;
+                    await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                }
+                await transaction.CommitAsync(ct).ConfigureAwait(false);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(ct).ConfigureAwait(false);
+                throw;
+            }
         }
         finally
         {
@@ -124,8 +173,8 @@ public sealed class HistoryRepository : IAsyncDisposable
             EnsureOpen();
             await using var cmd = _held!.CreateCommand();
             cmd.CommandText = """
-                SELECT id, content, created_at, type, image_data FROM history
-                ORDER BY created_at DESC
+                SELECT id, content, created_at, type, image_data, sort_order FROM history
+                ORDER BY sort_order DESC
                 LIMIT 1;
                 """;
             await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -137,8 +186,9 @@ public sealed class HistoryRepository : IAsyncDisposable
             var ms = reader.GetInt64(2);
             var type = (ClipboardItemType)reader.GetInt32(3);
             var imageData = reader.IsDBNull(4) ? null : (byte[])reader.GetValue(4);
+            var sortOrder = reader.GetInt64(5);
             var created = DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime;
-            return new ClipboardItem { Id = id, Content = content, CreatedAtUtc = created, Type = type, ImageData = imageData };
+            return new ClipboardItem { Id = id, Content = content, CreatedAtUtc = created, Type = type, ImageData = imageData, SortOrder = sortOrder };
         }
         finally
         {
@@ -159,8 +209,8 @@ public sealed class HistoryRepository : IAsyncDisposable
         if (string.IsNullOrWhiteSpace(searchQuery))
         {
             cmd.CommandText = """
-                SELECT id, content, created_at, type, image_data FROM history
-                ORDER BY created_at DESC
+                SELECT id, content, created_at, type, image_data, sort_order FROM history
+                ORDER BY sort_order DESC
                 LIMIT $lim;
                 """;
             cmd.Parameters.AddWithValue("$lim", limit);
@@ -168,9 +218,9 @@ public sealed class HistoryRepository : IAsyncDisposable
         else
         {
             cmd.CommandText = """
-                SELECT id, content, created_at, type, image_data FROM history
+                SELECT id, content, created_at, type, image_data, sort_order FROM history
                 WHERE content LIKE $q ESCAPE '\'
-                ORDER BY created_at DESC
+                ORDER BY sort_order DESC
                 LIMIT $lim;
                 """;
             var escaped = EscapeLikePattern(searchQuery.Trim());
@@ -186,8 +236,9 @@ public sealed class HistoryRepository : IAsyncDisposable
                 var ms = reader.GetInt64(2);
                 var type = (ClipboardItemType)reader.GetInt32(3);
                 var imageData = reader.IsDBNull(4) ? null : (byte[])reader.GetValue(4);
+                var sortOrder = reader.GetInt64(5);
                 var created = DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime;
-                list.Add(new ClipboardItem { Id = id, Content = content, CreatedAtUtc = created, Type = type, ImageData = imageData });
+                list.Add(new ClipboardItem { Id = id, Content = content, CreatedAtUtc = created, Type = type, ImageData = imageData, SortOrder = sortOrder });
             }
 
             return list;

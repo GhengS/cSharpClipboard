@@ -171,10 +171,15 @@
                Style="{StaticResource HistoryListBox}"
                SelectionMode="Extended"
                ItemsSource="{Binding Items}"
+               AllowDrop="True"
                VirtualizingPanel.IsVirtualizing="True"
                VirtualizingPanel.VirtualizationMode="Recycling"
                SelectionChanged="HistoryList_OnSelectionChanged"
                MouseDoubleClick="HistoryList_OnMouseDoubleClick"
+               PreviewMouseLeftButtonDown="HistoryList_OnPreviewMouseLeftButtonDown"
+               MouseMove="HistoryList_OnMouseMove"
+               DragOver="HistoryList_OnDragOver"
+               Drop="HistoryList_OnDrop"
                ItemContainerStyle="{StaticResource HistoryListItem}">
         <ListBox.InputBindings>
           <KeyBinding Key="Enter" Command="{Binding CopySelectionCommand}" />

@@ -319,6 +319,37 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ToggleCardView() => ViewMode = ViewDisplayMode.Card;
 
+    public async Task MoveItemAsync(int oldIndex, int newIndex)
+    {
+        if (oldIndex == newIndex || oldIndex < 0 || oldIndex >= Items.Count || newIndex < 0 || newIndex >= Items.Count)
+            return;
+
+        Items.Move(oldIndex, newIndex);
+
+        // Update sort_order in DB. 
+        // We want the items to maintain the visual order. 
+        // Since we order by sort_order DESC, the top item should have the highest sort_order.
+        var orders = new List<(long id, long order)>();
+        
+        // Strategy: Get all sort orders, sort them DESC, and re-assign them to items in current collection order
+        var allSortOrders = Items.Select(i => i.SortOrder).OrderByDescending(o => o).ToList();
+        
+        for (int i = 0; i < Items.Count; i++)
+        {
+            Items[i].SortOrder = allSortOrders[i];
+            orders.Add((Items[i].Id, Items[i].SortOrder));
+        }
+
+        try
+        {
+            await _repo.UpdateOrdersAsync(orders).ConfigureAwait(true);
+        }
+        catch
+        {
+            // Silently fail or log. In V1, we just want it to work.
+        }
+    }
+
     private void NotifySelectionCommands()
     {
         DeleteSelectionCommand.NotifyCanExecuteChanged();

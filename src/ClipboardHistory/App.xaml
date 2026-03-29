@@ -204,6 +204,7 @@
         <Setter.Value>
           <ControlTemplate TargetType="ListBoxItem">
             <Border x:Name="Outer"
+                    Background="Transparent"
                     Padding="4"
                     CornerRadius="12"
                     SnapsToDevicePixels="True">
