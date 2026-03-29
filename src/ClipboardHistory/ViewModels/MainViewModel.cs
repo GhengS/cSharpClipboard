@@ -190,7 +190,7 @@ public partial class MainViewModel : ObservableObject
         DeleteSelectionCommand.NotifyCanExecuteChanged();
         EditSelectionCommand.NotifyCanExecuteChanged();
         CopySelectionCommand.NotifyCanExecuteChanged();
-        AppendMergedCommand.NotifyCanExecuteChanged();
+        MergeSelectionCommand.NotifyCanExecuteChanged();
     }
 
     private ClipboardItem? PrimaryItem => _selectionOrdered.Count > 0 ? _selectionOrdered[0] : null;
@@ -232,12 +232,12 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
-    private void AppendMerged()
+    private void MergeSelection()
     {
         if (_selectionOrdered.Count == 0)
             return;
 
-        var sep = _settings.Current.AppendSeparator;
+        var sep = _settings.Current.MergeSeparator;
         var sb = new StringBuilder();
         var count = 0;
         for (var i = 0; i < _selectionOrdered.Count; i++)
@@ -254,8 +254,7 @@ public partial class MainViewModel : ObservableObject
         if (count == 0) return;
 
         var merged = sb.ToString();
-        ClipboardSuppression.ExecuteSuppressed(() =>
-            Clipboard.SetText(merged, TextDataFormat.UnicodeText));
+        Clipboard.SetText(merged, TextDataFormat.UnicodeText);
 
         if (_settings.Current.CloseOnCopy)
             RequestHideWindow?.Invoke();
@@ -325,7 +324,7 @@ public partial class MainViewModel : ObservableObject
         DeleteSelectionCommand.NotifyCanExecuteChanged();
         EditSelectionCommand.NotifyCanExecuteChanged();
         CopySelectionCommand.NotifyCanExecuteChanged();
-        AppendMergedCommand.NotifyCanExecuteChanged();
+        MergeSelectionCommand.NotifyCanExecuteChanged();
     }
 
     private string BuildHotkeyHint()
@@ -344,6 +343,6 @@ public partial class MainViewModel : ObservableObject
         var vk = s.ToggleHotkeyVk;
         var ch = vk is >= 0x41 and <= 0x5A ? (char)vk : '?';
         parts.Add(ch.ToString());
-        return $"显示/隐藏窗口：{string.Join("+", parts)}（可在设置 JSON 中调整 ToggleHotkeyModifiers / ToggleHotkeyVk）。开启 Caps Lock 时复制：追加到最新历史（换行分隔），并写回系统剪贴板（Win+V / Ctrl+V 为合并全文）。";
+        return $"显示/隐藏窗口：{string.Join("+", parts)}（可在设置 JSON 中调整 ToggleHotkeyModifiers / ToggleHotkeyVk）。多选模式下点击「合并」可同步到剪贴板。开启 Caps Lock 时复制：追加到最新历史（换行分隔）。";
     }
 }

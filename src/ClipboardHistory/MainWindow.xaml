@@ -110,12 +110,12 @@
                     Margin="0,0,8,0"
                     FontSize="12"
                     ToolTip="将选中第一条写回剪贴板 (Enter)" />
-            <Button Content="追加合并"
-                    Command="{Binding AppendMergedCommand}"
+            <Button Content="合并"
+                    Command="{Binding MergeSelectionCommand}"
                     Padding="12,8"
                     Margin="0,0,8,0"
                     FontSize="12"
-                    ToolTip="多选按分隔符合并到剪贴板" />
+                    ToolTip="将选中的多条记录合并后同步到剪贴板" />
             <Button Content="编辑"
                     Command="{Binding EditSelectionCommand}"
                     Padding="12,8"

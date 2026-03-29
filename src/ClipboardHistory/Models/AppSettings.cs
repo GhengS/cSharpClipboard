@@ -9,7 +9,7 @@ public sealed class AppSettings
     public int MaxEntryLength { get; set; } = 512_000;
     public bool DedupeConsecutive { get; set; } = true;
     public ViewDisplayMode ViewMode { get; set; } = ViewDisplayMode.List;
-    public string AppendSeparator { get; set; } = Environment.NewLine;
+    public string MergeSeparator { get; set; } = Environment.NewLine;
     public bool CloseOnCopy { get; set; }
     public bool MinimizeToTray { get; set; } = true;
     public int ToggleHotkeyModifiers { get; set; } = NativeConstants.ModControl | NativeConstants.ModShift;

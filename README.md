@@ -24,11 +24,10 @@ dotnet run --project src/ClipboardHistory/ClipboardHistory.csproj -c Release
 | 监听剪贴板 | 使用 `AddClipboardFormatListener` / `WM_CLIPBOARDUPDATE`，仅捕获 **Unicode 文本** |
 | 防自触发 | 通过 `ClipboardSuppression` 在应用内 `Clipboard.SetText` 前后压制一次监听闭环 |
 | 连续去重 | 可在设置中关闭；默认跳过与上一条完全相同的连续复制 |
-| 列表 / 卡片 | 工具栏切换；影响预览文本换行与最大高度（虚拟化列表保持流畅） |
-| 搜索 | 输入防抖后在线程池执行 SQL `LIKE`，再在 UI 线程刷新集合 |
-| 删除 / 编辑 | 支持多选删除；编辑使用对话框 |
-| 复制 / 追加合并 | 复制为「选中序列中第一条」写回剪贴板；**追加合并**为方案 A：多条选中按 `AppendSeparator` 拼成一段文本再 `SetText` |
-| Caps Lock 追加 | **大写锁定开启**时复制：新内容用 **`\n`** 追加到**最新一条**历史，并 **`Clipboard.SetText(merged)`** 写回系统剪贴板，**Win+V** 与 **Ctrl+V** 均为合并后的全文；无历史时仍插入一条（剪贴板已是本次复制） |
+| 视图切换 | 支持列表与卡片（图墙）双模式切换，保留选择状态 |
+| 内容管理 | 支持搜索、编辑（文本）、删除、写回剪贴板 |
+| 内容合并 | 支持多选历史条目，一键合并并同步到系统剪贴板 |
+| 自动追加 | 开启 Caps Lock 时，新复制的内容会自动追加到当前最新的一条历史记录中 |
 | 托盘 | 关闭窗口时（若启用「最小化到托盘」）隐藏到托盘；托盘可退出 |
 | 全局热键 | 默认 **Ctrl+Shift+V** 显示/隐藏主窗口，可在设置 JSON 中修改 |
 
@@ -41,7 +40,7 @@ dotnet run --project src/ClipboardHistory/ClipboardHistory.csproj -c Release
 - `MaxHistoryEntries`：最多保留条数（默认 500）
 - `MaxEntryLength`：单条最大字符数（超出截断）
 - `DedupeConsecutive`：是否跳过连续重复
-- `AppendSeparator`：追加合并分隔符（默认系统换行）
+- `MergeSeparator`：多选合并分隔符（默认系统换行）
 - `CloseOnCopy`：复制/合并写回剪贴板后是否隐藏窗口
 - `MinimizeToTray`：点关闭是否缩小到托盘（默认 true）
 - `ToggleHotkeyModifiers` / `ToggleHotkeyVk`：全局热键（与 Win32 `RegisterHotKey` 一致）
