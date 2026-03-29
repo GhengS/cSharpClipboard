@@ -191,6 +191,7 @@ public partial class MainViewModel : ObservableObject
         EditSelectionCommand.NotifyCanExecuteChanged();
         CopySelectionCommand.NotifyCanExecuteChanged();
         MergeSelectionCommand.NotifyCanExecuteChanged();
+        ShowDetailCommand.NotifyCanExecuteChanged();
     }
 
     private ClipboardItem? PrimaryItem => _selectionOrdered.Count > 0 ? _selectionOrdered[0] : null;
@@ -319,6 +320,23 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ToggleCardView() => ViewMode = ViewDisplayMode.Card;
 
+    [RelayCommand(CanExecute = nameof(HasPrimary))]
+    private void ShowDetail()
+    {
+        var item = PrimaryItem;
+        if (item == null) return;
+
+        var detailWindow = new DetailWindow(item)
+        {
+            Owner = System.Windows.Application.Current.MainWindow
+        };
+
+        if (detailWindow.ShowDialog() == true && _settings.Current.CloseOnCopy)
+        {
+            RequestHideWindow?.Invoke();
+        }
+    }
+
     public async Task MoveItemAsync(int oldIndex, int newIndex)
     {
         if (oldIndex == newIndex || oldIndex < 0 || oldIndex >= Items.Count || newIndex < 0 || newIndex >= Items.Count)
@@ -356,6 +374,7 @@ public partial class MainViewModel : ObservableObject
         EditSelectionCommand.NotifyCanExecuteChanged();
         CopySelectionCommand.NotifyCanExecuteChanged();
         MergeSelectionCommand.NotifyCanExecuteChanged();
+        ShowDetailCommand.NotifyCanExecuteChanged();
     }
 
     private string BuildHotkeyHint()

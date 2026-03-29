@@ -183,8 +183,8 @@ public partial class MainWindow : Window
 
     private void HistoryList_OnMouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (_viewModel.CopySelectionCommand.CanExecute(null))
-            _viewModel.CopySelectionCommand.Execute(null);
+        if (_viewModel.ShowDetailCommand.CanExecute(null))
+            _viewModel.ShowDetailCommand.Execute(null);
     }
 
     private void HistoryList_OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -203,15 +203,21 @@ public partial class MainWindow : Window
             {
                 if (sender is ListBox listBox)
                 {
-                    _isDragging = true;
-                    var item = (ClipboardItem)listBox.ItemContainerGenerator.ItemFromContainer(_draggedItemContainer);
-                    if (item != null)
+                    try
                     {
-                        DataObject dragData = new DataObject("ClipboardItem", item);
-                        DragDrop.DoDragDrop(_draggedItemContainer, dragData, DragDropEffects.Move);
+                        _isDragging = true;
+                        var item = (ClipboardItem)listBox.ItemContainerGenerator.ItemFromContainer(_draggedItemContainer);
+                        if (item != null)
+                        {
+                            DataObject dragData = new DataObject("ClipboardItem", item);
+                            DragDrop.DoDragDrop(_draggedItemContainer, dragData, DragDropEffects.Move);
+                        }
                     }
-                    _isDragging = false;
-                    _draggedItemContainer = null;
+                    finally
+                    {
+                        _isDragging = false;
+                        _draggedItemContainer = null;
+                    }
                 }
             }
         }
