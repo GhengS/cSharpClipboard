@@ -6,6 +6,8 @@
     <converters:ViewModeToTextWrappingConverter x:Key="ViewModeToWrapping" />
     <converters:ViewModeToMaxHeightConverter x:Key="ViewModeToMaxHeight" />
     <converters:ViewModeToBooleanConverter x:Key="ViewModeToBool" />
+    <converters:BytesToImageConverter x:Key="BytesToImage" />
+    <converters:TypeToVisibilityConverter x:Key="TypeToVisibility" />
 
     <!-- Palette -->
     <Color x:Key="Col.Page">#EDEEF2</Color>

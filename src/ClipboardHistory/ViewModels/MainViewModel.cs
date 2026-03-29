@@ -3,6 +3,8 @@ using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Windows.Media.Imaging;
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ClipboardHistory.Interop;
@@ -29,7 +31,7 @@ public partial class MainViewModel : ObservableObject
         _settings = settings;
         _clipboard = clipboard;
         ViewMode = settings.Current.ViewMode;
-        _clipboard.TextCaptured += OnClipboardTextCaptured;
+        _clipboard.DataCaptured += OnClipboardDataCaptured;
     }
 
     public ObservableCollection<ClipboardItem> Items { get; } = new();
@@ -107,16 +109,17 @@ public partial class MainViewModel : ObservableObject
         StatusHint = BuildHotkeyHint();
     }
 
-    private void OnClipboardTextCaptured(object? sender, string text)
+    private void OnClipboardDataCaptured(object? sender, ClipboardData data)
     {
-        _ = CaptureFromClipboardAsync(text);
+        _ = CaptureFromClipboardAsync(data);
     }
 
-    private async Task CaptureFromClipboardAsync(string text)
+    private async Task CaptureFromClipboardAsync(ClipboardData data)
     {
         await _captureGate.WaitAsync().ConfigureAwait(true);
         try
         {
+            var text = data.Content;
             if (_skipNextClipboardCaptureIfEquals is { } expectedSkip && text == expectedSkip)
             {
                 _skipNextClipboardCaptureIfEquals = null;
@@ -124,10 +127,10 @@ public partial class MainViewModel : ObservableObject
             }
 
             var maxLen = Math.Max(1, _settings.Current.MaxEntryLength);
-            if (Keyboard.IsKeyToggled(Key.CapsLock))
+            if (data.Type == ClipboardItemType.Text && Keyboard.IsKeyToggled(Key.CapsLock))
             {
                 var latest = await _repo.GetLatestAsync().ConfigureAwait(true);
-                if (latest != null)
+                if (latest != null && latest.Type == ClipboardItemType.Text)
                 {
                     var merged = latest.Content + '\n' + text;
                     if (merged.Length > maxLen)
@@ -140,12 +143,12 @@ public partial class MainViewModel : ObservableObject
                 }
                 else
                 {
-                    await _repo.InsertAsync(text, DateTime.UtcNow).ConfigureAwait(true);
+                    await _repo.InsertAsync(text, DateTime.UtcNow, data.Type, data.ImageData).ConfigureAwait(true);
                 }
             }
             else
             {
-                await _repo.InsertAsync(text, DateTime.UtcNow).ConfigureAwait(true);
+                await _repo.InsertAsync(text, DateTime.UtcNow, data.Type, data.ImageData).ConfigureAwait(true);
             }
 
             await _repo.TrimToMaxAsync(_settings.Current.MaxHistoryEntries).ConfigureAwait(true);
@@ -204,7 +207,25 @@ public partial class MainViewModel : ObservableObject
             return;
 
         ClipboardSuppression.ExecuteSuppressed(() =>
-            Clipboard.SetText(item.Content, TextDataFormat.UnicodeText));
+        {
+            if (item.Type == ClipboardItemType.Image && item.ImageData != null)
+            {
+                using var ms = new MemoryStream(item.ImageData);
+                var decoder = new PngBitmapDecoder(ms, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                Clipboard.SetImage(decoder.Frames[0]);
+            }
+            else if (item.Type == ClipboardItemType.File)
+            {
+                var paths = item.Content.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+                var sc = new System.Collections.Specialized.StringCollection();
+                sc.AddRange(paths);
+                Clipboard.SetFileDropList(sc);
+            }
+            else
+            {
+                Clipboard.SetText(item.Content, TextDataFormat.UnicodeText);
+            }
+        });
 
         if (_settings.Current.CloseOnCopy)
             RequestHideWindow?.Invoke();
@@ -218,12 +239,19 @@ public partial class MainViewModel : ObservableObject
 
         var sep = _settings.Current.AppendSeparator;
         var sb = new StringBuilder();
+        var count = 0;
         for (var i = 0; i < _selectionOrdered.Count; i++)
         {
-            if (i > 0)
+            var item = _selectionOrdered[i];
+            if (item.Type != ClipboardItemType.Text) continue;
+
+            if (count > 0)
                 sb.Append(sep);
-            sb.Append(_selectionOrdered[i].Content);
+            sb.Append(item.Content);
+            count++;
         }
+
+        if (count == 0) return;
 
         var merged = sb.ToString();
         ClipboardSuppression.ExecuteSuppressed(() =>
@@ -262,6 +290,12 @@ public partial class MainViewModel : ObservableObject
         var item = PrimaryItem;
         if (item == null)
             return;
+
+        if (item.Type != ClipboardItemType.Text)
+        {
+            MessageBox.Show("目前仅支持编辑文本条目。", "剪贴板历史", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
 
         var dlg = new EditItemDialog(item.Content)
         {

@@ -10,7 +10,7 @@
     <ApplicationTitle>剪贴板历史</ApplicationTitle>
     <RootNamespace>ClipboardHistory</RootNamespace>
     <AssemblyName>ClipboardHistory</AssemblyName>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

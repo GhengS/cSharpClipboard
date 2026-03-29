@@ -187,13 +187,29 @@
                     BorderThickness="1"
                     CornerRadius="10"
                     SnapsToDevicePixels="True">
-              <TextBlock Text="{Binding Preview}"
-                         TextTrimming="CharacterEllipsis"
-                         Foreground="{StaticResource Brush.Text}"
-                         FontSize="13"
-                         LineHeight="20"
-                         TextWrapping="{Binding DataContext.ViewMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ViewModeToWrapping}}"
-                         MaxHeight="{Binding DataContext.ViewMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ViewModeToMaxHeight}}" />
+              <Grid>
+                <!-- Text / File Preview -->
+                <TextBlock Text="{Binding Preview}"
+                           Visibility="{Binding Type, Converter={StaticResource TypeToVisibility}, ConverterParameter=Text}"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{StaticResource Brush.Text}"
+                           FontSize="13"
+                           LineHeight="20"
+                           TextWrapping="{Binding DataContext.ViewMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ViewModeToWrapping}}"
+                           MaxHeight="{Binding DataContext.ViewMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ViewModeToMaxHeight}}" />
+                <TextBlock Text="{Binding Preview}"
+                           Visibility="{Binding Type, Converter={StaticResource TypeToVisibility}, ConverterParameter=File}"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{StaticResource Brush.TextMuted}"
+                           FontSize="12"
+                           FontStyle="Italic" />
+                <!-- Image Preview -->
+                <Image Source="{Binding ImageData, Converter={StaticResource BytesToImage}}"
+                       Visibility="{Binding Type, Converter={StaticResource TypeToVisibility}, ConverterParameter=Image}"
+                       Stretch="Uniform"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+              </Grid>
             </Border>
           </DataTemplate>
         </ListBox.ItemTemplate>

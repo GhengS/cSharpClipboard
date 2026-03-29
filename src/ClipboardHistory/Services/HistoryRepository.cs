@@ -32,11 +32,25 @@ public sealed class HistoryRepository : IAsyncDisposable
                     CREATE TABLE IF NOT EXISTS history (
                       id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                       content TEXT NOT NULL,
-                      created_at INTEGER NOT NULL
+                      created_at INTEGER NOT NULL,
+                      type INTEGER DEFAULT 0,
+                      image_data BLOB
                     );
                     CREATE INDEX IF NOT EXISTS idx_history_created ON history (created_at DESC);
                     """;
                 await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+
+                // Check and add columns if they don't exist (basic migration)
+                try
+                {
+                    cmd.CommandText = "ALTER TABLE history ADD COLUMN type INTEGER DEFAULT 0;";
+                    await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                } catch { /* column exists */ }
+                try
+                {
+                    cmd.CommandText = "ALTER TABLE history ADD COLUMN image_data BLOB;";
+                    await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                } catch { /* column exists */ }
             }
         }
         finally
@@ -45,16 +59,18 @@ public sealed class HistoryRepository : IAsyncDisposable
         }
     }
 
-    public async Task<long> InsertAsync(string content, DateTime createdAtUtc, CancellationToken ct = default)
+    public async Task<long> InsertAsync(string content, DateTime createdAtUtc, ClipboardItemType type = ClipboardItemType.Text, byte[]? imageData = null, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             EnsureOpen();
             await using var cmd = _held!.CreateCommand();
-            cmd.CommandText = "INSERT INTO history(content, created_at) VALUES ($c, $t) RETURNING id;";
+            cmd.CommandText = "INSERT INTO history(content, created_at, type, image_data) VALUES ($c, $t, $type, $img) RETURNING id;";
             cmd.Parameters.AddWithValue("$c", content);
             cmd.Parameters.AddWithValue("$t", new DateTimeOffset(createdAtUtc).ToUnixTimeMilliseconds());
+            cmd.Parameters.AddWithValue("$type", (int)type);
+            cmd.Parameters.AddWithValue("$img", (object?)imageData ?? DBNull.Value);
             var scalar = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
             return Convert.ToInt64(scalar);
         }
@@ -108,7 +124,7 @@ public sealed class HistoryRepository : IAsyncDisposable
             EnsureOpen();
             await using var cmd = _held!.CreateCommand();
             cmd.CommandText = """
-                SELECT id, content, created_at FROM history
+                SELECT id, content, created_at, type, image_data FROM history
                 ORDER BY created_at DESC
                 LIMIT 1;
                 """;
@@ -119,8 +135,10 @@ public sealed class HistoryRepository : IAsyncDisposable
             var id = reader.GetInt64(0);
             var content = reader.GetString(1);
             var ms = reader.GetInt64(2);
+            var type = (ClipboardItemType)reader.GetInt32(3);
+            var imageData = reader.IsDBNull(4) ? null : (byte[])reader.GetValue(4);
             var created = DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime;
-            return new ClipboardItem { Id = id, Content = content, CreatedAtUtc = created };
+            return new ClipboardItem { Id = id, Content = content, CreatedAtUtc = created, Type = type, ImageData = imageData };
         }
         finally
         {
@@ -141,7 +159,7 @@ public sealed class HistoryRepository : IAsyncDisposable
         if (string.IsNullOrWhiteSpace(searchQuery))
         {
             cmd.CommandText = """
-                SELECT id, content, created_at FROM history
+                SELECT id, content, created_at, type, image_data FROM history
                 ORDER BY created_at DESC
                 LIMIT $lim;
                 """;
@@ -150,7 +168,7 @@ public sealed class HistoryRepository : IAsyncDisposable
         else
         {
             cmd.CommandText = """
-                SELECT id, content, created_at FROM history
+                SELECT id, content, created_at, type, image_data FROM history
                 WHERE content LIKE $q ESCAPE '\'
                 ORDER BY created_at DESC
                 LIMIT $lim;
@@ -166,8 +184,10 @@ public sealed class HistoryRepository : IAsyncDisposable
                 var id = reader.GetInt64(0);
                 var content = reader.GetString(1);
                 var ms = reader.GetInt64(2);
+                var type = (ClipboardItemType)reader.GetInt32(3);
+                var imageData = reader.IsDBNull(4) ? null : (byte[])reader.GetValue(4);
                 var created = DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime;
-                list.Add(new ClipboardItem { Id = id, Content = content, CreatedAtUtc = created });
+                list.Add(new ClipboardItem { Id = id, Content = content, CreatedAtUtc = created, Type = type, ImageData = imageData });
             }
 
             return list;
