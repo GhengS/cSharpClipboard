@@ -99,6 +99,35 @@ public sealed class HistoryRepository : IAsyncDisposable
         }
     }
 
+    /// <summary>Newest row by <c>created_at</c>, or null when table is empty.</summary>
+    public async Task<ClipboardItem?> GetLatestAsync(CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            EnsureOpen();
+            await using var cmd = _held!.CreateCommand();
+            cmd.CommandText = """
+                SELECT id, content, created_at FROM history
+                ORDER BY created_at DESC
+                LIMIT 1;
+                """;
+            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+                return null;
+
+            var id = reader.GetInt64(0);
+            var content = reader.GetString(1);
+            var ms = reader.GetInt64(2);
+            var created = DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime;
+            return new ClipboardItem { Id = id, Content = content, CreatedAtUtc = created };
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     /// <summary>Recent rows when query is null/empty; otherwise case-insensitive LIKE search.</summary>
     public async Task<IReadOnlyList<ClipboardItem>> QueryAsync(string? searchQuery, int limit, CancellationToken ct = default)
     {

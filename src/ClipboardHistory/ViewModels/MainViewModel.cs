@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -18,6 +19,8 @@ public partial class MainViewModel : ObservableObject
     private readonly ClipboardMonitorService _clipboard;
     private readonly List<ClipboardItem> _selectionOrdered = new();
     private CancellationTokenSource? _searchDebounceCts;
+    /// <summary>After Caps-merge we <see cref="System.Windows.Clipboard.SetText(string)"/>; ignore the echo <see cref="ClipboardMonitorService.TextCaptured"/> for that exact payload.</summary>
+    private string? _skipNextClipboardCaptureIfEquals;
 
     public MainViewModel(HistoryRepository repo, SettingsService settings, ClipboardMonitorService clipboard)
     {
@@ -112,7 +115,37 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            await _repo.InsertAsync(text, DateTime.UtcNow).ConfigureAwait(true);
+            if (_skipNextClipboardCaptureIfEquals is { } expectedSkip && text == expectedSkip)
+            {
+                _skipNextClipboardCaptureIfEquals = null;
+                return;
+            }
+
+            var maxLen = Math.Max(1, _settings.Current.MaxEntryLength);
+            if (Keyboard.IsKeyToggled(Key.CapsLock))
+            {
+                var latest = await _repo.GetLatestAsync().ConfigureAwait(true);
+                if (latest != null)
+                {
+                    var merged = latest.Content + '\n' + text;
+                    if (merged.Length > maxLen)
+                        merged = merged[^maxLen..];
+                    await _repo.UpdateAsync(latest.Id, merged).ConfigureAwait(true);
+                    // Replace system clipboard (and Windows Win+V history entry) with merged text; suppress monitor loop.
+                    _skipNextClipboardCaptureIfEquals = merged;
+                    ClipboardSuppression.ExecuteSuppressed(() =>
+                        Clipboard.SetText(merged, TextDataFormat.UnicodeText));
+                }
+                else
+                {
+                    await _repo.InsertAsync(text, DateTime.UtcNow).ConfigureAwait(true);
+                }
+            }
+            else
+            {
+                await _repo.InsertAsync(text, DateTime.UtcNow).ConfigureAwait(true);
+            }
+
             await _repo.TrimToMaxAsync(_settings.Current.MaxHistoryEntries).ConfigureAwait(true);
 
             if (!string.IsNullOrWhiteSpace(SearchText))
@@ -253,6 +286,6 @@ public partial class MainViewModel : ObservableObject
         var vk = s.ToggleHotkeyVk;
         var ch = vk is >= 0x41 and <= 0x5A ? (char)vk : '?';
         parts.Add(ch.ToString());
-        return $"显示/隐藏窗口：{string.Join("+", parts)}（可在设置 JSON 中调整 ToggleHotkeyModifiers / ToggleHotkeyVk）";
+        return $"显示/隐藏窗口：{string.Join("+", parts)}（可在设置 JSON 中调整 ToggleHotkeyModifiers / ToggleHotkeyVk）。开启 Caps Lock 时复制：追加到最新历史（换行分隔），并写回系统剪贴板（Win+V / Ctrl+V 为合并全文）。";
     }
 }

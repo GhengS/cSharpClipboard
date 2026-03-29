@@ -28,6 +28,7 @@ dotnet run --project src/ClipboardHistory/ClipboardHistory.csproj -c Release
 | 搜索 | 输入防抖后在线程池执行 SQL `LIKE`，再在 UI 线程刷新集合 |
 | 删除 / 编辑 | 支持多选删除；编辑使用对话框 |
 | 复制 / 追加合并 | 复制为「选中序列中第一条」写回剪贴板；**追加合并**为方案 A：多条选中按 `AppendSeparator` 拼成一段文本再 `SetText` |
+| Caps Lock 追加 | **大写锁定开启**时复制：新内容用 **`\n`** 追加到**最新一条**历史，并 **`Clipboard.SetText(merged)`** 写回系统剪贴板，**Win+V** 与 **Ctrl+V** 均为合并后的全文；无历史时仍插入一条（剪贴板已是本次复制） |
 | 托盘 | 关闭窗口时（若启用「最小化到托盘」）隐藏到托盘；托盘可退出 |
 | 全局热键 | 默认 **Ctrl+Shift+V** 显示/隐藏主窗口，可在设置 JSON 中修改 |
 

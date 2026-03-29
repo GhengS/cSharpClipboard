@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using ClipboardHistory.Interop;
 
 namespace ClipboardHistory.Services;
@@ -57,7 +58,8 @@ public sealed class ClipboardMonitorService : IDisposable
         if (text.Length > maxLen)
             text = text[..maxLen];
 
-        if (_settings.Current.DedupeConsecutive && text == _lastAcceptedText)
+        var capsMerge = Keyboard.IsKeyToggled(Key.CapsLock);
+        if (_settings.Current.DedupeConsecutive && !capsMerge && text == _lastAcceptedText)
             return;
 
         _lastAcceptedText = text;
