@@ -15,6 +15,9 @@
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType">
+  <Window.InputBindings>
+    <KeyBinding Key="Esc" Command="{Binding RequestHideWindowAction, RelativeSource={RelativeSource AncestorType=Window}}" />
+  </Window.InputBindings>
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />

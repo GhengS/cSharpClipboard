@@ -7,6 +7,7 @@ using Forms = System.Windows.Forms;
 using System.Windows.Media;
 using System.Windows.Controls;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.Input;
 using ClipboardHistory.Interop;
 using ClipboardHistory.Models;
 using ClipboardHistory.Services;
@@ -23,6 +24,8 @@ public partial class MainWindow : Window
     private HwndSource? _hwndSource;
     private Forms.NotifyIcon? _trayIcon;
     private bool _reallyExit;
+
+    public ICommand RequestHideWindowAction { get; }
 
     private System.Windows.Point _dragStartPoint;
     private bool _isDragging;
@@ -45,6 +48,8 @@ public partial class MainWindow : Window
         };
         DataContext = _viewModel;
 
+        RequestHideWindowAction = new RelayCommand(Hide);
+
         Width = settings.Current.WindowWidth;
         Height = settings.Current.WindowHeight;
 
@@ -61,6 +66,20 @@ public partial class MainWindow : Window
     {
         await _viewModel.LoadAsync().ConfigureAwait(true);
         InitTray();
+        UpdateWindowIcon();
+    }
+
+    private void UpdateWindowIcon()
+    {
+        try
+        {
+            using var icon = GetAppIcon();
+            Icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                icon.Handle,
+                Int32Rect.Empty,
+                System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+        }
+        catch { /* ignore */ }
     }
 
     private void InitTray()
@@ -70,7 +89,7 @@ public partial class MainWindow : Window
 
         _trayIcon = new Forms.NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = GetAppIcon(),
             Visible = true,
             Text = "剪贴板历史",
         };
@@ -80,6 +99,30 @@ public partial class MainWindow : Window
         menu.Items.Add("退出", null, (_, _) => RequestExit());
         _trayIcon.ContextMenuStrip = menu;
         _trayIcon.DoubleClick += (_, _) => ShowAndActivate();
+    }
+
+    private System.Drawing.Icon GetAppIcon()
+    {
+        try
+        {
+            using var bitmap = new System.Drawing.Bitmap(32, 32);
+            using (var g = System.Drawing.Graphics.FromImage(bitmap))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+                // Use blue accent color
+                using var brush = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(0, 120, 212));
+                g.FillEllipse(brush, 2, 2, 28, 28);
+
+                using var font = new System.Drawing.Font("Segoe UI", 18, System.Drawing.FontStyle.Bold);
+                using var textBrush = new System.Drawing.SolidBrush(System.Drawing.Color.White);
+                var size = g.MeasureString("C", font);
+                g.DrawString("C", font, textBrush, (32 - size.Width) / 2 + 1, (32 - size.Height) / 2 + 1);
+            }
+            return System.Drawing.Icon.FromHandle(bitmap.GetHicon());
+        }
+        catch { return System.Drawing.SystemIcons.Application; }
     }
 
     private void ShowAndActivate()

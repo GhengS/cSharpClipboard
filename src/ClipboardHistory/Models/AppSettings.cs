@@ -12,8 +12,8 @@ public sealed class AppSettings
     public string MergeSeparator { get; set; } = Environment.NewLine;
     public bool CloseOnCopy { get; set; }
     public bool MinimizeToTray { get; set; } = true;
-    public int ToggleHotkeyModifiers { get; set; } = NativeConstants.ModControl | NativeConstants.ModShift;
-    public int ToggleHotkeyVk { get; set; } = 0x56; /* V */
+    public int ToggleHotkeyModifiers { get; set; } = NativeConstants.ModShift;
+    public int ToggleHotkeyVk { get; set; } = 0x14; /* CapsLock */
     public double WindowWidth { get; set; } = 720;
     public double WindowHeight { get; set; } = 560;
 }

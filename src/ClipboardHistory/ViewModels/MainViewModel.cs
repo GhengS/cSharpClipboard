@@ -391,8 +391,11 @@ public partial class MainViewModel : ObservableObject
             parts.Add("Win");
 
         var vk = s.ToggleHotkeyVk;
-        var ch = vk is >= 0x41 and <= 0x5A ? (char)vk : '?';
-        parts.Add(ch.ToString());
-        return $"显示/隐藏窗口：{string.Join("+", parts)}（可在设置 JSON 中调整 ToggleHotkeyModifiers / ToggleHotkeyVk）。多选模式下点击「合并」可同步到剪贴板。开启 Caps Lock 时复制：追加到最新历史（换行分隔）。";
+        var hotkeyText = "";
+        if (vk == 0x14) hotkeyText = "CapsLock";
+        else hotkeyText = vk is >= 0x41 and <= 0x5A ? ((char)vk).ToString() : "?";
+        
+        parts.Add(hotkeyText);
+        return $"显示/隐藏窗口：{string.Join("+", parts)} / Esc。多选模式下点击「合并」可同步到剪贴板。开启 Caps Lock 时复制：追加到最新历史。";
     }
 }
