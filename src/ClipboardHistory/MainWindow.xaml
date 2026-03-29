@@ -6,136 +6,196 @@
         xmlns:models="clr-namespace:ClipboardHistory.Models"
         mc:Ignorable="d"
         Title="剪贴板历史"
-        Height="560"
-        Width="720"
+        Height="600"
+        Width="760"
         MinWidth="520"
-        MinHeight="380"
-        Background="#FFF7F8FA">
-  <Grid Margin="0">
+        MinHeight="400"
+        Background="{StaticResource Brush.Page}"
+        FontFamily="{StaticResource Font.Ui}"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType">
+  <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
+    <!-- Header -->
     <Border Grid.Row="0"
-            Padding="12,10"
-            Background="#FFEDEDF2"
-            BorderBrush="#22000000"
-            BorderThickness="0,0,0,1">
-      <DockPanel LastChildFill="True">
-        <StackPanel Orientation="Horizontal"
-                    DockPanel.Dock="Left"
-                    VerticalAlignment="Center">
-          <TextBlock Text="视图"
-                     VerticalAlignment="Center"
-                     Margin="0,0,8,0"
-                     Foreground="#FF444444" />
-          <Button Content="列表"
-                  Command="{Binding ToggleListViewCommand}"
-                  Padding="12,6"
-                  Margin="0,0,6,0" />
-          <Button Content="卡片"
-                  Command="{Binding ToggleCardViewCommand}"
-                  Padding="12,6"
-                  Margin="0,0,16,0" />
+            Background="{StaticResource Brush.Surface}"
+            BorderBrush="{StaticResource Brush.Border}"
+            BorderThickness="0,0,0,1"
+            Padding="20,16">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+          <Border Width="36"
+                  Height="36"
+                  CornerRadius="10"
+                  Background="{StaticResource Brush.Accent}"
+                  Margin="0,0,12,0"
+                  VerticalAlignment="Center">
+            <TextBlock Text="📋"
+                       FontSize="18"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Margin="0,-1,0,0" />
+          </Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="剪贴板历史"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource Brush.Text}" />
+            <TextBlock Text="列表/搜索 · Caps Lock 合并 · Win+V 同步"
+                       FontSize="12"
+                       Foreground="{StaticResource Brush.TextMuted}"
+                       Margin="0,2,0,0" />
+          </StackPanel>
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal"
-                    DockPanel.Dock="Right"
-                    VerticalAlignment="Center">
-          <Button Content="复制"
-                  Command="{Binding CopySelectionCommand}"
-                  Padding="12,6"
-                  Margin="0,0,6,0"
-                  ToolTip="将当前选中第一条写回剪贴板 (Enter)" />
-          <Button Content="追加合并"
-                  Command="{Binding AppendMergedCommand}"
-                  Padding="12,6"
-                  Margin="0,0,6,0"
-                  ToolTip="将选中多条按设置的分隔符合并到剪贴板" />
-          <Button Content="编辑"
-                  Command="{Binding EditSelectionCommand}"
-                  Padding="12,6"
-                  Margin="0,0,6,0" />
-          <Button Content="删除"
-                  Command="{Binding DeleteSelectionCommand}"
-                  Padding="12,6"
-                  Margin="0,0,0,0" />
-        </StackPanel>
+        <DockPanel Grid.Row="1" LastChildFill="True" Margin="0,16,0,0">
+          <StackPanel Orientation="Horizontal"
+                      DockPanel.Dock="Left"
+                      VerticalAlignment="Center">
+            <TextBlock Text="视图"
+                       VerticalAlignment="Center"
+                       Margin="0,0,10,0"
+                       FontWeight="SemiBold"
+                       FontSize="12"
+                       Foreground="{StaticResource Brush.TextMuted}" />
+            <Button Content="列表"
+                    Command="{Binding ToggleListViewCommand}"
+                    Padding="12,8"
+                    Margin="0,0,6,0"
+                    FontSize="12" />
+            <Button Content="卡片"
+                    Command="{Binding ToggleCardViewCommand}"
+                    Padding="12,8"
+                    Margin="0,0,0,0"
+                    FontSize="12" />
+          </StackPanel>
 
-        <Grid Margin="8,0,8,0" VerticalAlignment="Center">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-          </Grid.ColumnDefinitions>
-          <TextBlock Text="搜索"
-                     VerticalAlignment="Center"
-                     Margin="0,0,8,0"
-                     Foreground="#FF444444" />
-          <TextBox Grid.Column="1"
-                   MinWidth="200"
-                   Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                   VerticalContentAlignment="Center"
-                   Padding="6,4" />
-        </Grid>
-      </DockPanel>
+          <StackPanel Orientation="Horizontal"
+                      DockPanel.Dock="Right"
+                      VerticalAlignment="Center">
+            <Button Content="复制"
+                    Style="{StaticResource AccentButton}"
+                    Command="{Binding CopySelectionCommand}"
+                    Padding="14,8"
+                    Margin="0,0,8,0"
+                    FontSize="12"
+                    ToolTip="将选中第一条写回剪贴板 (Enter)" />
+            <Button Content="追加合并"
+                    Command="{Binding AppendMergedCommand}"
+                    Padding="12,8"
+                    Margin="0,0,8,0"
+                    FontSize="12"
+                    ToolTip="多选按分隔符合并到剪贴板" />
+            <Button Content="编辑"
+                    Command="{Binding EditSelectionCommand}"
+                    Padding="12,8"
+                    Margin="0,0,8,0"
+                    FontSize="12" />
+            <Button Content="删除"
+                    Style="{StaticResource DangerButton}"
+                    Command="{Binding DeleteSelectionCommand}"
+                    Padding="12,8"
+                    FontSize="12" />
+          </StackPanel>
+
+          <Border Margin="16,0,16,0"
+                  VerticalAlignment="Center"
+                  Background="{StaticResource Brush.Page}"
+                  BorderBrush="{StaticResource Brush.Border}"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="10,0,12,0">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Text="🔍"
+                         Grid.Column="0"
+                         VerticalAlignment="Center"
+                         Margin="0,0,8,0"
+                         Opacity="0.55"
+                         FontSize="13" />
+              <TextBox Grid.Column="1"
+                       MinWidth="180"
+                       Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                       Background="Transparent"
+                       BorderThickness="0"
+                       Padding="0,8"
+                       FontSize="13" />
+            </Grid>
+          </Border>
+        </DockPanel>
+      </Grid>
     </Border>
 
-    <ListBox x:Name="HistoryList"
-             Grid.Row="1"
-             Margin="12"
-             BorderBrush="#22000000"
-             SelectionMode="Extended"
-             ItemsSource="{Binding Items}"
-             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-             VirtualizingPanel.IsVirtualizing="True"
-             VirtualizingPanel.VirtualizationMode="Recycling"
-             SelectionChanged="HistoryList_OnSelectionChanged"
-             MouseDoubleClick="HistoryList_OnMouseDoubleClick">
-      <ListBox.ItemsPanel>
-        <ItemsPanelTemplate>
-          <VirtualizingStackPanel />
-        </ItemsPanelTemplate>
-      </ListBox.ItemsPanel>
-      <ListBox.InputBindings>
-        <KeyBinding Key="Enter"
-                    Command="{Binding CopySelectionCommand}" />
-      </ListBox.InputBindings>
-      <ListBox.ItemContainerStyle>
-        <Style TargetType="ListBoxItem">
-          <Setter Property="Padding" Value="0" />
-          <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-        </Style>
-      </ListBox.ItemContainerStyle>
-      <ListBox.ItemTemplate>
-        <DataTemplate DataType="{x:Type models:ClipboardItem}">
-          <Border Padding="8,6"
-                  Margin="0,3"
-                  Background="White"
-                  BorderBrush="#14000000"
-                  BorderThickness="1"
-                  CornerRadius="6"
-                  SnapsToDevicePixels="True">
-            <TextBlock Text="{Binding Preview}"
-                       TextTrimming="CharacterEllipsis"
-                       Foreground="#FF222222"
-                       FontSize="13"
-                       TextWrapping="{Binding DataContext.ViewMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ViewModeToWrapping}}"
-                       MaxHeight="{Binding DataContext.ViewMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ViewModeToMaxHeight}}" />
-          </Border>
-        </DataTemplate>
-      </ListBox.ItemTemplate>
-    </ListBox>
+    <!-- List -->
+    <Border Grid.Row="1"
+            Margin="20,16,20,12"
+            Background="{StaticResource Brush.Surface}"
+            BorderBrush="{StaticResource Brush.Border}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Padding="12,12,8,12">
+      <ListBox x:Name="HistoryList"
+               Style="{StaticResource HistoryListBox}"
+               SelectionMode="Extended"
+               ItemsSource="{Binding Items}"
+               VirtualizingPanel.IsVirtualizing="True"
+               VirtualizingPanel.VirtualizationMode="Recycling"
+               SelectionChanged="HistoryList_OnSelectionChanged"
+               MouseDoubleClick="HistoryList_OnMouseDoubleClick"
+               ItemContainerStyle="{StaticResource HistoryListItem}">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <VirtualizingStackPanel />
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.InputBindings>
+          <KeyBinding Key="Enter" Command="{Binding CopySelectionCommand}" />
+        </ListBox.InputBindings>
+        <ListBox.ItemTemplate>
+          <DataTemplate DataType="{x:Type models:ClipboardItem}">
+            <Border Padding="12,10"
+                    Background="#FAFBFC"
+                    BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    SnapsToDevicePixels="True">
+              <TextBlock Text="{Binding Preview}"
+                         TextTrimming="CharacterEllipsis"
+                         Foreground="{StaticResource Brush.Text}"
+                         FontSize="13"
+                         LineHeight="20"
+                         TextWrapping="{Binding DataContext.ViewMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ViewModeToWrapping}}"
+                         MaxHeight="{Binding DataContext.ViewMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ViewModeToMaxHeight}}" />
+            </Border>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
 
+    <!-- Status -->
     <Border Grid.Row="2"
-            Padding="12,8"
-            Background="#FFEDEDF2"
-            BorderBrush="#22000000"
-            BorderThickness="0,1,0,0">
+            Background="{StaticResource Brush.Surface}"
+            BorderBrush="{StaticResource Brush.Border}"
+            BorderThickness="0,1,0,0"
+            Padding="20,12">
       <TextBlock Text="{Binding StatusHint}"
-                 Foreground="#FF555555"
+                 Foreground="{StaticResource Brush.TextMuted}"
                  FontSize="12"
+                 LineHeight="18"
                  TextWrapping="Wrap" />
     </Border>
   </Grid>

@@ -18,6 +18,7 @@ public partial class MainViewModel : ObservableObject
     private readonly SettingsService _settings;
     private readonly ClipboardMonitorService _clipboard;
     private readonly List<ClipboardItem> _selectionOrdered = new();
+    private readonly SemaphoreSlim _captureGate = new(1, 1);
     private CancellationTokenSource? _searchDebounceCts;
     /// <summary>After Caps-merge we <see cref="System.Windows.Clipboard.SetText(string)"/>; ignore the echo <see cref="ClipboardMonitorService.TextCaptured"/> for that exact payload.</summary>
     private string? _skipNextClipboardCaptureIfEquals;
@@ -113,6 +114,7 @@ public partial class MainViewModel : ObservableObject
 
     private async Task CaptureFromClipboardAsync(string text)
     {
+        await _captureGate.WaitAsync().ConfigureAwait(true);
         try
         {
             if (_skipNextClipboardCaptureIfEquals is { } expectedSkip && text == expectedSkip)
@@ -151,11 +153,30 @@ public partial class MainViewModel : ObservableObject
             if (!string.IsNullOrWhiteSpace(SearchText))
                 return;
 
-            await LoadAsync().ConfigureAwait(true);
+            var latestEntry = await _repo.GetLatestAsync().ConfigureAwait(true);
+            if (latestEntry != null)
+            {
+                // If it was an update (merged), replace in UI
+                var existing = Items.FirstOrDefault(i => i.Id == latestEntry.Id);
+                if (existing != null)
+                {
+                    existing.Content = latestEntry.Content;
+                }
+                else
+                {
+                    Items.Insert(0, latestEntry);
+                    if (Items.Count > _settings.Current.MaxHistoryEntries)
+                        Items.RemoveAt(Items.Count - 1);
+                }
+            }
         }
         catch
         {
             // Clipboard or DB edge cases should not crash the app.
+        }
+        finally
+        {
+            _captureGate.Release();
         }
     }
 
@@ -224,12 +245,15 @@ public partial class MainViewModel : ObservableObject
         if (result != MessageBoxResult.Yes)
             return;
 
-        foreach (var item in _selectionOrdered.ToArray())
+        var toDelete = _selectionOrdered.ToArray();
+        foreach (var item in toDelete)
+        {
             await _repo.DeleteAsync(item.Id).ConfigureAwait(true);
+            Items.Remove(item);
+        }
 
         _selectionOrdered.Clear();
         NotifySelectionCommands();
-        await LoadAsync().ConfigureAwait(true);
     }
 
     [RelayCommand(CanExecute = nameof(HasPrimary))]
@@ -253,7 +277,7 @@ public partial class MainViewModel : ObservableObject
             text = text[..max];
 
         await _repo.UpdateAsync(item.Id, text).ConfigureAwait(true);
-        await LoadAsync().ConfigureAwait(true);
+        item.Content = text;
     }
 
     [RelayCommand]
