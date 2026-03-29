@@ -1,0 +1,9 @@
+<Application x:Class="ClipboardHistory.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:ClipboardHistory.Converters">
+  <Application.Resources>
+    <converters:ViewModeToTextWrappingConverter x:Key="ViewModeToWrapping" />
+    <converters:ViewModeToMaxHeightConverter x:Key="ViewModeToMaxHeight" />
+  </Application.Resources>
+</Application>
